@@ -1,7 +1,7 @@
-from .agent import policy_agent, validate_policy, determine_approval_route
+"""
+Policy sub-agent for validating reimbursement requests against company policies
+"""
 
-__all__ = [
-    'policy_agent',
-    'validate_policy',
-    'determine_approval_route'
-] 
+from .agent import policy_agent
+
+__all__ = ['policy_agent'] 

@@ -1,6 +1,7 @@
 # Reimbly
 
 ## How to run this project locally
+Update `.env` file with your google cloud project id and location.
 
 ```
 python3 -m venv .venv

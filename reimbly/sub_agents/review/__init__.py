@@ -1,3 +1,7 @@
-from .agent import review_agent, review_request, get_pending_approvals
+"""
+Review sub-agent for handling the approval workflow
+"""
 
-__all__ = ['review_agent', 'review_request', 'get_pending_approvals'] 
+from .agent import review_agent
+
+__all__ = ['review_agent'] 

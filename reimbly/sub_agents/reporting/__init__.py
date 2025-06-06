@@ -1,8 +1,7 @@
-from .agent import reporting_agent, generate_report, calculate_summary_stats, generate_time_series
+"""
+Reporting sub-agent for generating reports and analytics
+"""
 
-__all__ = [
-    'reporting_agent',
-    'generate_report',
-    'calculate_summary_stats',
-    'generate_time_series'
-] 
+from .agent import reporting_agent
+
+__all__ = ['reporting_agent'] 

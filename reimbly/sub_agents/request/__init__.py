@@ -1,7 +1,7 @@
-from .agent import request_agent, collect_request_info, get_request_template
+"""
+Request sub-agent for collecting and validating reimbursement requests
+"""
 
-__all__ = [
-    'request_agent',
-    'collect_request_info',
-    'get_request_template'
-] 
+from .agent import request_agent
+
+__all__ = ['request_agent'] 
