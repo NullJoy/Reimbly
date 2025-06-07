@@ -17,4 +17,5 @@ venv/
 *.log
 
 # Local development settings
-.env.local 
+.env
+.env.local
