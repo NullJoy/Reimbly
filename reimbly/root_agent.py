@@ -34,6 +34,7 @@ from .sub_agents.policy.agent import validate_policy, policy_agent
 from .sub_agents.review.agent import review_request, get_pending_approvals, review_agent
 from .sub_agents.reporting.agent import generate_report, reporting_agent
 from .sub_agents.dashboard.agent import generate_dashboard_html, dashboard_agent
+from .sub_agents.notification.agent import notification_agent
 
 # Global in-memory storage for pending approvals and reporting data
 pending_approvals: Dict[str, Dict[str, Any]] = {}
@@ -68,6 +69,26 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
             pending_approvals[request_id] = data.copy()
             # Store in reporting data
             reporting_data[request_id] = data.copy()
+
+
+            # Send notification to user about submission
+            notification_agent.transfer({
+                "type": "submit",
+                "recipient": request_data["user_info"]["email"],
+                "subject": "Reimbursement Request Submitted",
+                "request_data": request_data
+            })
+
+            # Send notifications to all approvers
+            for approver in request_data["approval_route"]:
+                notification_agent.transfer({
+                    "type": "review",
+                    "recipient": f"{approver}@company.com",  # Assuming email format
+                    "subject": f"New Reimbursement Request to Review - {request_id}",
+                    "request_data": request_data,
+                    "chatbox_link": f"https://reimbly.company.com/review/{request_id}"  # Example link
+                })
+
 
             return {
                 "status": "success",
@@ -107,6 +128,17 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
                 request_data["approval_route"].remove(approver_id)
                 if not request_data["approval_route"]:
                     request_data["status"] = "approved"
+
+                    # Send notification to user about update
+                    notification_agent.transfer({
+                        "type": "update",
+                        "recipient": request_data["user_info"]["email"],
+                        "subject": f"Reimbursement Request Update - {request_data['request_id']}",
+                        "request_data": request_data
+                    })
+
+                    # TODO: his was the final approval/rejection, notify the previous reviewers in the approval route
+
                     return {
                         "status": "success",
                         "message": "Request fully approved",
@@ -123,6 +155,17 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
             elif approval_action == "reject":
                 request_data["status"] = "rejected"
                 request_data["rejection_reason"] = comment
+
+                # Send notification to user about update
+                notification_agent.transfer({
+                    "type": "update",
+                    "recipient": request_data["user_info"]["email"],
+                    "subject": f"Reimbursement Request Update - {request_data['request_id']}",
+                    "request_data": request_data
+                })
+
+                # TODO: his was the final approval/rejection, notify the previous reviewers in the approval route
+
                 return {
                     "status": "success",
                     "message": "Request rejected",
@@ -171,6 +214,7 @@ root_agent = Agent(
     sub_agents=[
         request_agent,
         policy_agent,
+        notification_agent,
         review_agent,
         reporting_agent,
         dashboard_agent
@@ -179,9 +223,10 @@ root_agent = Agent(
         "You are the root agent for the reimbursement system. You coordinate between:\n"
         "1. Request Agent: Collects and validates reimbursement requests\n"
         "2. Policy Agent: Validates requests against company policies\n"
-        "3. Review Agent: Handles the approval workflow\n"
-        "4. Reporting Agent: Generates reports and analytics\n"
-        "5. Dashboard Agent: Generates admin dashboard\n\n"
+        "3. Notification Agent: Sends email notifications\n"
+        "4. Review Agent: Handles the approval workflow\n"
+        "5. Reporting Agent: Generates reports and analytics\n"
+        "6. Dashboard Agent: Generates admin dashboard\n\n"
         "You can process the following actions:\n"
         "- submit: Submit a new reimbursement request\n"
         "- approve: Approve or reject a request\n"
