@@ -90,7 +90,7 @@ def validate_policy(request_data: Dict[str, Any]) -> Dict[str, Any]:
     if amount > category_limits[category]:
         return {
             "status": "error",
-            "error_message": f"Amount exceeds category limit of ${category_limits[category]} for {category}"
+            "message": f"Amount exceeds category limit of ${category_limits[category]} for {category}"
         }
     
     # Validate supporting material
@@ -98,7 +98,7 @@ def validate_policy(request_data: Dict[str, Any]) -> Dict[str, Any]:
     if not supporting_material:
         return {
             "status": "error",
-            "error_message": "Supporting material is required"
+            "message": "Supporting material is required"
         }
     
     # Category-specific material requirements
@@ -117,7 +117,7 @@ def validate_policy(request_data: Dict[str, Any]) -> Dict[str, Any]:
     if missing_material:
         return {
             "status": "error",
-            "error_message": f"Missing required supporting material for {category}: {', '.join(missing_material)}"
+            "message": f"Missing required supporting material for {category}: {', '.join(missing_material)}"
         }
     
     # If all validations pass, determine approval route

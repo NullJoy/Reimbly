@@ -6,6 +6,68 @@ from datetime import datetime
 # In-memory storage for pending approvals
 pending_approvals: Dict[str, Dict[str, Any]] = {}
 
+# User roles and permissions
+USER_ROLES = {
+    "employee": {
+        "can_submit": True,
+        "can_approve": False,
+        "can_view_all": False
+    },
+    "admin": {
+        "can_submit": True,
+        "can_approve": True,
+        "can_view_all": True
+    },
+    "manager": {
+        "can_submit": True,
+        "can_approve": True,
+        "can_view_all": False
+    }
+}
+
+def validate_user_permission(user_id: str, action: str) -> Dict[str, Any]:
+    """Validate if a user has permission to perform an action.
+    
+    Args:
+        user_id (str): The ID of the user
+        action (str): The action to validate
+        
+    Returns:
+        Dict[str, Any]: The validation result
+    """
+    # TODO: Replace with actual user role lookup from database
+    # For now, we'll use a simple mapping
+    user_roles = {
+        "user123": "employee",
+        "admin123": "admin",
+        "manager123": "manager"
+    }
+    
+    user_role = user_roles.get(user_id, "employee")
+    role_permissions = USER_ROLES[user_role]
+    
+    if action == "submit" and not role_permissions["can_submit"]:
+        return {
+            "status": "error",
+            "message": f"User with role {user_role} cannot submit reimbursements"
+        }
+    elif action == "approve" and not role_permissions["can_approve"]:
+        return {
+            "status": "error",
+            "message": f"User with role {user_role} cannot approve reimbursements"
+        }
+    elif action == "view_all" and not role_permissions["can_view_all"]:
+        return {
+            "status": "error",
+            "message": f"User with role {user_role} cannot view all reimbursements"
+        }
+    
+    return {
+        "status": "success",
+        "message": "Permission validated successfully",
+        "role": user_role
+    }
+
 def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
     """Process a reimbursement request through the entire workflow.
     
@@ -18,6 +80,18 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
     action = request.get("action", "").lower()
     
     if action == "submit":
+        # Validate user permission
+        user_id = request.get("data", {}).get("user_info", {}).get("user_id")
+        if not user_id:
+            return {
+                "status": "error",
+                "message": "User ID is required"
+            }
+        
+        permission_result = validate_user_permission(user_id, "submit")
+        if permission_result["status"] == "error":
+            return permission_result
+        
         # Step 1: Collect and validate request information
         request_result = collect_request_info(request.get("data", {}))
         if request_result["status"] == "error":
@@ -51,15 +125,39 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
         }
     
     elif action == "approve":
+        # Validate user permission
+        approver_id = request.get("data", {}).get("approver_id")
+        if not approver_id:
+            return {
+                "status": "error",
+                "message": "Approver ID is required"
+            }
+        
+        permission_result = validate_user_permission(approver_id, "approve")
+        if permission_result["status"] == "error":
+            return permission_result
+        
         return review_request(request.get("data", {}))
     
     elif action == "report":
+        # Validate user permission
+        user_id = request.get("data", {}).get("user_id")
+        if not user_id:
+            return {
+                "status": "error",
+                "message": "User ID is required"
+            }
+        
+        permission_result = validate_user_permission(user_id, "view_all")
+        if permission_result["status"] == "error":
+            return permission_result
+        
         return generate_report(request.get("data", {}))
     
     else:
         return {
             "status": "error",
-            "error_message": f"Unknown action: {action}"
+            "message": f"Unknown action: {action}"
         }
 
 def review_request(review_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -214,7 +312,6 @@ if __name__ == "__main__":
     
     # Process the request
     result = process_reimbursement(new_request)
-    print("Request submission result:", result)
     
     # Example 2: Approve the request
     approval = {
@@ -228,7 +325,6 @@ if __name__ == "__main__":
     }
     
     approval_result = process_reimbursement(approval)
-    print("Approval result:", approval_result)
     
     # Example 3: Generate a report
     report = {
@@ -241,5 +337,4 @@ if __name__ == "__main__":
         }
     }
     
-    report_result = process_reimbursement(report)
-    print("Report result:", report_result) 
+    report_result = process_reimbursement(report) 

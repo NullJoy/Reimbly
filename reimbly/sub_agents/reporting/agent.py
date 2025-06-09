@@ -179,7 +179,7 @@ def generate_report(report_params: Dict[str, Any]) -> Dict[str, Any]:
     else:
         return {
             "status": "error",
-            "error_message": f"Unknown report type: {report_type}"
+            "message": f"Unknown report type: {report_type}"
         }
 
 # Define the reporting agent
