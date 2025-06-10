@@ -1,0 +1,30 @@
+{% macro activity_feed(activities, show_avatar=True, show_timestamp=True, max_items=10) %}
+<div class="card activity-feed">
+    <div class="feed-header">
+        <h2>Recent Activity</h2>
+        <div class="feed-controls">
+            <button class="control-btn" data-action="refresh" title="Refresh Feed">
+                <i class="ri-refresh-line"></i>
+            </button>
+        </div>
+    </div>
+    <div class="feed-content">
+        {% for activity in activities[:max_items] %}
+        <div class="activity-item">
+            <div class="activity-avatar">
+                <img src="{{ activity.user_avatar }}" alt="{{ activity.user_name }}">
+            </div>
+            <div class="activity-details">
+                <p class="activity-text">
+                    <strong>{{ activity.user_name }}</strong>
+                    {{ activity.status }} request
+                    <strong>{{ activity.request_id }}</strong>
+                    for ${{ activity.amount }}
+                </p>
+                <small class="activity-time">{{ activity.updated_at }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %} 

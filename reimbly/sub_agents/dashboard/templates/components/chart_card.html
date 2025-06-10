@@ -1,0 +1,48 @@
+{% macro chart_card(title, chart_id, chart_type='pie', show_legend=True, show_tooltip=True) %}
+<div class="card chart-card">
+    <div class="chart-header">
+        <h2>{{ title }}</h2>
+        {% if show_legend or show_tooltip %}
+        <div class="chart-controls">
+            {% if show_legend %}
+            <button class="control-btn toggle-legend" title="Toggle Legend">
+                <i class="icon-legend"></i>
+            </button>
+            {% endif %}
+            {% if show_tooltip %}
+            <button class="control-btn toggle-tooltip" title="Toggle Tooltips">
+                <i class="icon-tooltip"></i>
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="chart-container">
+        <canvas id="{{ chart_id }}"></canvas>
+    </div>
+</div>
+{% endmacro %}
+
+<div class="chart-header">
+    <h2>Request Analytics</h2>
+    <div class="chart-controls">
+        <button class="control-btn" data-action="toggleLegend" title="Toggle Legend">
+            <i class="ri-legend-line"></i>
+        </button>
+        <button class="control-btn" data-action="toggleTooltip" title="Toggle Tooltip">
+            <i class="ri-tooltip-line"></i>
+        </button>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-container">
+        <h3>Category Distribution</h3>
+        <canvas id="categoryChart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+        <h3>Request Status</h3>
+        <canvas id="statusChart"></canvas>
+    </div>
+</div> 

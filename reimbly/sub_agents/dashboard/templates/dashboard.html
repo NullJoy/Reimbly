@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reimbursement Dashboard</title>
+    <style>
+        :root {
+            --background: {{ colors.background }};
+            --text: {{ colors.text }};
+            --primary: {{ colors.primary }};
+            --secondary: {{ colors.secondary }};
+            --success: {{ colors.success }};
+            --warning: {{ colors.warning }};
+            --danger: {{ colors.danger }};
+            --border-radius: {{ border_radius }};
+            --spacing: {{ spacing }};
+            --transition: {{ transition }};
+            --font-family: {{ font_family }};
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: var(--spacing);
+            transition: var(--transition);
+        }
+
+        .dashboard-container {
+            max-width: {{ max_width }};
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: {{ layout_config }};
+            gap: var(--spacing);
+        }
+
+        .card {
+            background-color: var(--background);
+            border: 1px solid var(--secondary);
+            border-radius: var(--border-radius);
+            padding: var(--spacing);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing);
+            margin-bottom: var(--spacing);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: var(--spacing);
+            border-radius: var(--border-radius);
+            background-color: var(--primary);
+            color: var(--background);
+        }
+
+        .request-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .request-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--secondary);
+        }
+
+        .request-item:last-child {
+            border-bottom: none;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .status-pending {
+            background-color: var(--warning);
+            color: var(--background);
+        }
+
+        .status-approved {
+            background-color: var(--success);
+            color: var(--background);
+        }
+
+        .status-rejected {
+            background-color: var(--danger);
+            color: var(--background);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Summary Statistics -->
+        <div class="card">
+            <h2>Summary Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Requests</h3>
+                    <p>{{ data.summary_stats.total_requests }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p>{{ data.summary_stats.pending_count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Approved</h3>
+                    <p>{{ data.summary_stats.approved_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if show_pending %}
+        <!-- Pending Requests -->
+        <div class="card">
+            <h2>Pending Requests</h2>
+            <ul class="request-list">
+                {% for request in data.pending_requests %}
+                <li class="request-item">
+                    <div>
+                        <h3>{{ request.description }}</h3>
+                        <p>Request ID: {{ request.request_id }}</p>
+                        <p>Amount: ${{ request.amount }}</p>
+                        <p>Category: {{ request.category }}</p>
+                        <p>Updated: {{ request.created_at }}</p>
+                    </div>
+                    <span class="status status-pending">Pending</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if show_approved %}
+        <!-- Approved Requests -->
+        <div class="card">
+            <h2>Approved Requests</h2>
+            <ul class="request-list">
+                {% for request in data.approved_requests %}
+                <li class="request-item">
+                    <div>
+                        <h3>{{ request.description }}</h3>
+                        <p>Request ID: {{ request.request_id }}</p>
+                        <p>Amount: ${{ request.amount }}</p>
+                        <p>Category: {{ request.category }}</p>
+                        <p>Updated: {{ request.created_at }}</p>
+                    </div>
+                    <span class="status status-approved">Approved</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if show_rejected %}
+        <!-- Rejected Requests -->
+        <div class="card">
+            <h2>Rejected Requests</h2>
+            <ul class="request-list">
+                {% for request in data.rejected_requests %}
+                <li class="request-item">
+                    <div>
+                        <h3>{{ request.description }}</h3>
+                        <p>Request ID: {{ request.request_id }}</p>
+                        <p>Amount: ${{ request.amount }}</p>
+                        <p>Category: {{ request.category }}</p>
+                        <p>Updated: {{ request.created_at }}</p>
+                    </div>
+                    <span class="status status-rejected">Rejected</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if show_charts %}
+        <!-- Request Analytics -->
+        <div class="card">
+            <h2>Request Analytics</h2>
+            <div id="analytics-charts">
+                <!-- Charts will be rendered here -->
+            </div>
+        </div>
+        {% endif %}
+
+        {% if show_activity %}
+        <!-- Recent Activity -->
+        <div class="card">
+            <h2>Recent Activity</h2>
+            <ul class="request-list">
+                {% for request in recent_activity %}
+                <li class="request-item">
+                    <div>
+                        <h3>{{ request.description }}</h3>
+                        <p>Request ID: {{ request.request_id }}</p>
+                        <p>Amount: ${{ request.amount }}</p>
+                        <p>Category: {{ request.category }}</p>
+                        <p>Updated: {{ request.created_at }}</p>
+                    </div>
+                    <span class="status status-{{ request.status }}">{{ request.status }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html> 

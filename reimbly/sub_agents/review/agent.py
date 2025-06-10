@@ -3,9 +3,7 @@ from typing import Dict, Any, List
 import uuid
 from datetime import datetime
 from ...tools.validation import validate_approval_data
-
-# In-memory storage for pending approvals
-pending_approvals: Dict[str, Dict[str, Any]] = {}
+from ...tools.database import db
 
 # User roles and permissions
 USER_ROLES = {
@@ -36,15 +34,15 @@ def validate_user_permission(user_id: str, action: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: The validation result
     """
-    # TODO: Replace with actual user role lookup from database
-    # For now, we'll use a simple mapping
-    user_roles = {
-        "user123": "employee",
-        "admin123": "admin",
-        "manager123": "manager"
-    }
+    # Get user role from Firestore
+    user = db.get_user(user_id)
+    if not user:
+        return {
+            "status": "error",
+            "message": "User not found"
+        }
     
-    user_role = user_roles.get(user_id, "employee")
+    user_role = user.get("role", "employee")
     role_permissions = USER_ROLES[user_role]
     
     if action == "submit" and not role_permissions["can_submit"]:
@@ -98,32 +96,30 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
         if request_result["status"] == "error":
             return request_result
         
-        # Add request ID and timestamp
-        request_id = str(uuid.uuid4())
-        request_data = request.get("data", {})
-        request_data["request_id"] = request_id
-        
         # Step 2: Validate against policies and determine approval route
-        policy_result = validate_policy(request_data)
+        policy_result = validate_policy(request_result["data"])
         if policy_result["status"] == "error":
             return policy_result
         
         # Add approval route to request data
+        request_data = request_result["data"]
         request_data["approval_route"] = policy_result.get("approval_route")
+        request_data["status"] = "pending"
         
-        # Step 3: Add to pending approvals for review
-        pending_approvals[request_id] = request_data
-        
-        # Step 4: Add to reporting data
-        from reporting.agent import reimbursement_data
-        reimbursement_data[request_id] = request_data
-        
-        return {
-            "status": "success",
-            "message": "Request submitted successfully",
-            "request_id": request_id,
-            "approval_route": policy_result.get("approval_route")
-        }
+        # Store in Firestore
+        try:
+            request_id = db.create_reimbursement_request(request_data)
+            return {
+                "status": "success",
+                "message": "Request submitted successfully",
+                "request_id": request_id,
+                "approval_route": policy_result.get("approval_route")
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to store request: {str(e)}"
+            }
     
     elif action == "approve":
         # Validate user permission
@@ -187,14 +183,21 @@ def review_request(review_data: Dict[str, Any]) -> Dict[str, Any]:
     approver_id = review_data["approver_id"]
     comment = review_data["comment"]
     
-    # Check if request exists
-    if request_id not in pending_approvals:
+    # Get request from Firestore
+    request = db.get_reimbursement_request(request_id)
+    if not request:
         return {
             "status": "error",
             "message": f"Request {request_id} not found"
         }
     
-    request = pending_approvals[request_id]
+    # Prevent self-approval
+    requestor_id = request.get("user_info", {}).get("user_id")
+    if approver_id == requestor_id:
+        return {
+            "status": "error",
+            "message": "You cannot approve or reject your own reimbursement request."
+        }
     
     # Check if approver is authorized
     if approver_id not in request["approval_route"]:
@@ -220,23 +223,34 @@ def review_request(review_data: Dict[str, Any]) -> Dict[str, Any]:
         request["approval_route"].remove(approver_id)
         if not request["approval_route"]:
             request["status"] = "approved"
-            return {
-                "status": "success",
-                "message": "Request fully approved",
-                "request_status": "approved"
+            update_data = {
+                "status": "approved",
+                "reviews": request["reviews"]
             }
-        return {
-            "status": "success",
-            "message": "Request approved, waiting for additional approvals",
-            "request_status": "pending",
-            "remaining_approvers": request["approval_route"]
-        }
+        else:
+            update_data = {
+                "approval_route": request["approval_route"],
+                "reviews": request["reviews"]
+            }
     else:  # reject
         request["status"] = "rejected"
+        update_data = {
+            "status": "rejected",
+            "reviews": request["reviews"]
+        }
+    
+    # Update in Firestore
+    try:
+        db.update_reimbursement_request(request_id, update_data)
         return {
             "status": "success",
-            "message": "Request rejected",
-            "request_status": "rejected"
+            "message": "Request review processed successfully",
+            "request_status": request["status"]
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to update request: {str(e)}"
         }
 
 def get_pending_approvals(approver_id: str) -> Dict[str, Any]:
@@ -248,37 +262,34 @@ def get_pending_approvals(approver_id: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: List of pending approvals.
     """
-    pending = {
-        request_id: request
-        for request_id, request in pending_approvals.items()
-        if approver_id in request["approval_route"]
-    }
-    
-    return {
-        "status": "success",
-        "pending_approvals": pending
-    }
+    try:
+        pending_approvals = db.get_pending_approvals(approver_id)
+        return {
+            "status": "success",
+            "data": pending_approvals
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to get pending approvals: {str(e)}"
+        }
 
 # Define the review agent
 review_agent = Agent(
     name="review_processor",
-    description="Agent for processing reimbursement request reviews and approvals",
+    description="Agent for processing reimbursement reviews and approvals",
     model="gemini-2.0-flash",
     instruction=(
-        "You are a review processing agent. Your responsibilities include:\n"
-        "1. Processing approval and rejection actions\n"
-        "2. Validating approver authorization\n"
-        "3. Tracking approval progress\n"
-        "4. Managing the approval workflow\n\n"
-        "Review process:\n"
-        "1. Validate review action and approver authorization\n"
-        "2. Record the review with timestamp and comments\n"
-        "3. Update request status based on action\n"
-        "4. Track remaining approvers in the route\n\n"
-        "Request states:\n"
-        "- Pending: Waiting for approvals\n"
-        "- Approved: All approvals received\n"
-        "- Rejected: Any approver rejected the request"
+        "You are a reimbursement review processor. Your responsibilities include:\n"
+        "1. Validating user permissions for actions\n"
+        "2. Processing approval/rejection of requests\n"
+        "3. Managing the approval workflow\n"
+        "4. Tracking request status and history\n\n"
+        "You can process the following actions:\n"
+        "- submit: Submit a new reimbursement request\n"
+        "- approve: Approve or reject a request\n"
+        "- report: Generate reports\n\n"
+        "Please ensure all required information is provided and valid."
     )
 )
 

@@ -74,10 +74,19 @@ def send_notification(notification_data: Dict[str, Any]) -> Dict[str, Any]:
             content = f"""
             <h2>New Reimbursement Request Submitted</h2>
             <p>Your reimbursement request has been submitted successfully.</p>
-            <p><strong>Request ID:</strong> {request_data.get("request_id")}</p>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p style="font-size: 18px; margin: 0;"><strong>Request ID:</strong> <span style="color: #2563eb;">{request_data.get("request_id")}</span></p>
+                <p style="margin: 10px 0 0 0;">Please save this ID for future reference.</p>
+            </div>
             <p><strong>Amount:</strong> ${request_data.get("amount")}</p>
             <p><strong>Category:</strong> {request_data.get("category")}</p>
             <p><strong>Justification:</strong> {request_data.get("justification")}</p>
+            <p style="margin-top: 20px;">
+                <a href="https://reimbly.company.com/requests/{request_data.get('request_id')}" 
+                   style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                    View Request Details
+                </a>
+            </p>
             """
         elif notification_type == "update":
             content = f"""

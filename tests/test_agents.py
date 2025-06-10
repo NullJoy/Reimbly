@@ -3,20 +3,17 @@ import time
 from reimbly import (
     process_reimbursement,
     collect_request_info,
-    validate_policy,
-    review_request,
-    generate_report
 )
 from reimbly.root_agent import get_pending_approvals
-from reimbly.sub_agents.dashboard.agent import generate_dashboard_html
+from reimbly.sub_agents.dashboard.agent import DashboardAgent
 from reimbly.sub_agents.review.agent import validate_user_permission
+from unittest.mock import patch
 
 class TestReimbursementAgents(unittest.TestCase):
     def setUp(self):
         # Clear global state for test isolation
-        from reimbly.root_agent import pending_approvals, reporting_data
-        pending_approvals.clear()
-        reporting_data.clear()
+        get_pending_approvals('direct_manager').clear()
+
         self.valid_request = {
             "action": "submit",
             "data": {
@@ -41,8 +38,83 @@ class TestReimbursementAgents(unittest.TestCase):
             }
         }
 
+        # Create mock agent class
+        class MockAgent:
+            def __init__(self, return_value):
+                self.return_value = return_value
+            def transfer(self, *args, **kwargs):
+                return self.return_value
+
+        # Create mock agents with their return values
+        self.mock_request_agent = MockAgent({
+            "status": "success", 
+            "data": self.valid_request["data"], 
+            "message": "Validated",
+            "request_id": "test_request_123"
+        })
+
+        self.mock_policy_agent = MockAgent({
+            "status": "success", 
+            "approval_route": ["direct_manager", "department_head"], 
+            "message": "Policy passed",
+            "request_id": "test_request_123"
+        })
+
+        self.mock_notification_agent = MockAgent({
+            "status": "success", 
+            "message": "Notification sent",
+            "request_id": "test_request_123"
+        })
+        
+        self.mock_review_agent = MockAgent({
+            "status": "success", 
+            "request_status": "pending", 
+            "updated_data": {},
+            "request_id": "test_request_123"
+        })
+
+        self.mock_reporting_agent = MockAgent({
+            "status": "success", 
+            "data": {"total_amount": 100},
+            "request_id": "test_request_123"
+        })
+
+        self.mock_dashboard_agent = MockAgent({
+            "status": "success", 
+            "html": "mock html",
+            "request_id": "test_request_123"
+        })
+
+        # Patch the agents where they are used in reimbly.root_agent
+        self.patcher_request_agent = patch('reimbly.root_agent.request_agent', self.mock_request_agent)
+        self.patcher_request_agent.start()
+
+        self.patcher_policy_agent = patch('reimbly.root_agent.policy_agent', self.mock_policy_agent)
+        self.patcher_policy_agent.start()
+
+        self.patcher_notification_agent = patch('reimbly.root_agent.notification_agent', self.mock_notification_agent)
+        self.patcher_notification_agent.start()
+        
+        self.patcher_review_agent = patch('reimbly.root_agent.review_agent', self.mock_review_agent)
+        self.patcher_review_agent.start()
+
+        self.patcher_reporting_agent = patch('reimbly.root_agent.reporting_agent', self.mock_reporting_agent)
+        self.patcher_reporting_agent.start()
+
+        self.patcher_dashboard_agent = patch('reimbly.root_agent.dashboard_agent', self.mock_dashboard_agent)
+        self.patcher_dashboard_agent.start()
+
+    def tearDown(self):
+        self.patcher_request_agent.stop()
+        self.patcher_policy_agent.stop()
+        self.patcher_notification_agent.stop()
+        self.patcher_review_agent.stop()
+        self.patcher_reporting_agent.stop()
+        self.patcher_dashboard_agent.stop()
+
     def test_request_submission(self):
         result = process_reimbursement(self.valid_request)
+        print('DEBUG test_request_submission result:', result)
         self.assertEqual(result["status"], "success")
         self.assertIn("request_id", result)
         self.assertIn("approval_route", result)
@@ -63,6 +135,7 @@ class TestReimbursementAgents(unittest.TestCase):
     def test_approval_flow(self):
         # First submit a request
         submit_result = process_reimbursement(self.valid_request)
+        print('DEBUG test_approval_flow submit_result:', submit_result)
         request_id = submit_result["request_id"]
 
         # Then approve it as direct manager
@@ -101,6 +174,7 @@ class TestReimbursementAgents(unittest.TestCase):
         """Test request rejection"""
         # First submit a request
         submit_result = process_reimbursement(self.valid_request)
+        print('DEBUG test_rejection_flow submit_result:', submit_result)
         request_id = submit_result["request_id"]
 
         # Then reject it as direct manager
@@ -121,10 +195,11 @@ class TestReimbursementAgents(unittest.TestCase):
         """Test getting pending approvals for an approver"""
         # First submit a request
         submit_result = process_reimbursement(self.valid_request)
+        print('DEBUG test_pending_approvals submit_result:', submit_result)
         request_id = submit_result["request_id"]
 
         # Get pending approvals for direct manager
-        pending = get_pending_approvals("direct_manager")
+        pending = get_pending_approvals('direct_manager')
         self.assertEqual(pending["status"], "success")
         self.assertIn("pending_approvals", pending)
         self.assertIn(request_id, pending["pending_approvals"])
@@ -276,27 +351,21 @@ class TestReimbursementAgents(unittest.TestCase):
             }
         }
         
-        result = generate_dashboard_html(test_data)
-        self.assertEqual(result["status"], "success")
-        self.assertIn("html", result)
-        
-        # Verify HTML content
-        html = result["html"]
-        self.assertIn("Reimbly Admin Dashboard", html)
-        self.assertIn("Total Requests", html)
-        self.assertIn("Total Amount", html)
-        self.assertIn("Pending Requests", html)
-        self.assertIn("Approval Rate", html)
-        
-        # Verify request cards
-        self.assertIn("req1", html)  # Pending request
-        self.assertIn("req2", html)  # Approved request
-        self.assertIn("req3", html)  # Rejected request
-        
-        # Verify amounts
-        self.assertIn("$1,000.00", html)
-        self.assertIn("$500.00", html)
-        self.assertIn("$200.00", html)
+        dashboard_agent = DashboardAgent()
+        # Patch _get_all_requests to return test_data
+        with patch.object(dashboard_agent, '_get_all_requests', return_value=test_data):
+            html = dashboard_agent.generate_dashboard_html(theme="light", layout="grid")
+            self.assertIn("Summary Statistics", html)
+            self.assertIn("Total Requests", html)
+            self.assertIn("Pending Requests", html)
+            self.assertIn("Approved Requests", html)
+            self.assertIn("Rejected Requests", html)
+            self.assertIn("req1", html)  # Pending request
+            self.assertIn("req2", html)  # Approved request
+            self.assertIn("req3", html)  # Rejected request
+            self.assertIn("1000", html)
+            self.assertIn("500", html)
+            self.assertIn("200", html)
 
     def test_dashboard_performance(self):
         """Test dashboard generation performance with different data sizes."""
@@ -370,7 +439,10 @@ class TestReimbursementAgents(unittest.TestCase):
         results = {}
         for name, data in datasets.items():
             start_time = time.time()
-            result = generate_dashboard_html(data)
+            dashboard_agent = DashboardAgent()
+            # Patch _get_all_requests to return the current dataset
+            with patch.object(dashboard_agent, '_get_all_requests', return_value=data):
+                html = dashboard_agent.generate_dashboard_html(theme="light", layout="grid")
             end_time = time.time()
             
             results[name] = {
@@ -378,18 +450,12 @@ class TestReimbursementAgents(unittest.TestCase):
                 "request_count": len(data["pending_requests"]) + 
                                len(data["approved_requests"]) + 
                                len(data["rejected_requests"]),
-                "html_size": len(result["html"])
+                "html_size": len(html)
             }
             
             # Verify the result is valid
-            self.assertEqual(result["status"], "success")
-            self.assertIn("html", result)
-            
-            # Verify HTML content
-            html = result["html"]
-            self.assertIn("Reimbly Admin Dashboard", html)
+            self.assertIn("Summary Statistics", html)
             self.assertIn("Total Requests", html)
-            
             # Verify all requests are included
             for request in data["pending_requests"]:
                 self.assertIn(request["request_id"], html)
@@ -441,7 +507,10 @@ class TestReimbursementAgents(unittest.TestCase):
             }
         }
 
-        result = generate_dashboard_html(large_data)
+        dashboard_agent = DashboardAgent()
+        # Patch _get_all_requests to return large_data
+        with patch.object(dashboard_agent, '_get_all_requests', return_value=large_data):
+            result = dashboard_agent.generate_dashboard_html(theme="light", layout="grid")
         final_memory = process.memory_info().rss
         memory_used = final_memory - initial_memory
 

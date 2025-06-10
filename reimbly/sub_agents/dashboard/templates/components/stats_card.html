@@ -1,0 +1,58 @@
+{% macro stats_card(title, value, icon=None, trend=None, trend_direction=None) %}
+<div class="stat-item">
+    {% if icon %}
+    <div class="stat-icon">
+        <i class="{{ icon }}"></i>
+    </div>
+    {% endif %}
+    <h3>{{ title }}</h3>
+    <p id="{{ title.lower().replace(' ', '-') }}">{{ value }}</p>
+    {% if trend %}
+    <div class="trend {{ trend_direction }}">
+        <span class="trend-value">{{ trend }}%</span>
+        <i class="trend-icon"></i>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+<div class="stat-item">
+    <div class="stat-icon">
+        <i class="ri-file-list-3-line"></i>
+    </div>
+    <h3>Total Requests</h3>
+    <div class="stat-value">{{ data.summary_stats.total_requests }}</div>
+    {% if data.summary_stats.trends %}
+    <div class="trend {{ 'up' if data.summary_stats.trends.total > 0 else 'down' }}">
+        <i class="ri-arrow-{{ 'up' if data.summary_stats.trends.total > 0 else 'down' }}-line"></i>
+        {{ data.summary_stats.trends.total }}%
+    </div>
+    {% endif %}
+</div>
+
+<div class="stat-item">
+    <div class="stat-icon">
+        <i class="ri-time-line"></i>
+    </div>
+    <h3>Pending</h3>
+    <div class="stat-value">{{ data.summary_stats.pending_count }}</div>
+    {% if data.summary_stats.trends %}
+    <div class="trend {{ 'up' if data.summary_stats.trends.pending > 0 else 'down' }}">
+        <i class="ri-arrow-{{ 'up' if data.summary_stats.trends.pending > 0 else 'down' }}-line"></i>
+        {{ data.summary_stats.trends.pending }}%
+    </div>
+    {% endif %}
+</div>
+
+<div class="stat-item">
+    <div class="stat-icon">
+        <i class="ri-check-line"></i>
+    </div>
+    <h3>Approved</h3>
+    <div class="stat-value">{{ data.summary_stats.approved_count }}</div>
+    {% if data.summary_stats.trends %}
+    <div class="trend {{ 'up' if data.summary_stats.trends.approved > 0 else 'down' }}">
+        <i class="ri-arrow-{{ 'up' if data.summary_stats.trends.approved > 0 else 'down' }}-line"></i>
+        {{ data.summary_stats.trends.approved }}%
+    </div>
+    {% endif %} 

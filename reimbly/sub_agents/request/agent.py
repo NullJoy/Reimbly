@@ -1,6 +1,7 @@
 from google.adk.agents import Agent
 from typing import Dict, Any, List
 from ...tools.validation import validate_request_data
+from ...tools.database import db
 
 def collect_request_info(request_data: Dict[str, Any]) -> Dict[str, Any]:
     """Collect and validate request information from users.
@@ -67,6 +68,7 @@ def collect_request_info(request_data: Dict[str, Any]) -> Dict[str, Any]:
             "message": "Supporting material must be a non-empty list"
         }
     
+    # The request will be stored by the root agent after all validations.
     return {
         "status": "success",
         "message": "Request information validated successfully",
@@ -95,6 +97,20 @@ def get_request_template() -> Dict[str, Any]:
             "expiry_date": "Card expiry date (MM/YY)"
         }
     }
+
+def get_user_requests(user_id: str) -> List[Dict[str, Any]]:
+    """Get all reimbursement requests for a specific user.
+    
+    Args:
+        user_id (str): The user's ID.
+        
+    Returns:
+        List[Dict[str, Any]]: List of the user's reimbursement requests.
+    """
+    try:
+        return db.query_by_field('reimbursement_requests', 'user_info.user_id', user_id)
+    except Exception as e:
+        return []
 
 # Define the request agent
 request_agent = Agent(

@@ -14,12 +14,14 @@ High-Level Overview:
   - Notification Tools: Email formatting and sending utilities.
   - Progress Tools: Status tracking and progress bar generation.
   - Validation Tools: Common validation utilities.
+  - Database Tools: Firestore operations for persistent storage.
 """
 from google.adk.agents import Agent
 from typing import Dict, Any
 import uuid
 from datetime import datetime
 import time
+import logging
 
 # Import sub-agents
 from .sub_agents.request.agent import request_agent
@@ -32,10 +34,7 @@ from .sub_agents.notification.agent import notification_agent
 # Import tools
 from .tools.notification import send_notification
 from .tools.progress import format_progress_bar
-
-# Global in-memory storage for pending approvals and reporting data
-pending_approvals: Dict[str, Dict[str, Any]] = {}
-reporting_data: Dict[str, Dict[str, Any]] = {}
+from .tools.database import db
 
 def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
     """Process reimbursement requests and approvals."""
@@ -44,13 +43,21 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
         data = request.get("data", {})
 
         if action == "submit":
+            # Generate request ID first
+            request_id = f"REQ-{int(time.time())}{uuid.uuid4().hex[:6]}"
+            data["request_id"] = request_id
+
             # Delegate request validation to request agent
             validation_result = request_agent.transfer({
                 "action": "validate",
                 "data": data
             })
             if validation_result["status"] == "error":
-                return validation_result
+                return {
+                    "status": "error",
+                    "message": validation_result["message"],
+                    "request_id": request_id
+                }
 
             # Delegate policy validation to policy agent
             policy_result = policy_agent.transfer({
@@ -58,19 +65,29 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
                 "data": data
             })
             if policy_result["status"] == "error":
-                return policy_result
+                return {
+                    "status": "error",
+                    "message": policy_result["message"],
+                    "request_id": request_id
+                }
 
-            # Generate request ID and prepare data
-            request_id = f"REQ-{int(time.time())}{uuid.uuid4().hex[:6]}"
-            data["request_id"] = request_id
+            # Prepare data
             data["timestamp"] = datetime.now().isoformat()
             data["approval_route"] = policy_result["approval_route"].copy()
             data["status"] = "pending"
             data["reviews"] = []
 
-            # Store data
-            pending_approvals[request_id] = data.copy()
-            reporting_data[request_id] = data.copy()
+            # Store data in Firestore
+            try:
+                db.create_reimbursement_request(data)
+            except Exception as e:
+                logger = logging.getLogger(__name__)
+                logger.exception("Error storing reimbursement request in Firestore:")
+                return {
+                    "status": "error",
+                    "message": f"Failed to store request: {str(e)}",
+                    "request_id": request_id
+                }
 
             # Delegate notification to notification agent
             notification_agent.transfer({
@@ -80,24 +97,28 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
 
             return {
                 "status": "success",
+                "message": f"Request submitted successfully. Your request ID is: {request_id}",
                 "request_id": request_id,
                 "approval_route": policy_result["approval_route"]
             }
 
         elif action == "approve":
+            # Get the request from Firestore
+            request_id = data.get("request_id")
+            existing_request = db.get_reimbursement_request(request_id)
+            if not existing_request:
+                return {"status": "error", "message": "Request not found"}
+
             # Delegate approval processing to review agent
             review_result = review_agent.transfer({
                 "action": "process_approval",
                 "data": data,
-                "pending_approvals": pending_approvals
+                "existing_request": existing_request
             })
 
             if review_result["status"] == "success":
-                # Update stored data
-                request_id = data.get("request_id")
-                if request_id in pending_approvals:
-                    pending_approvals[request_id].update(review_result["updated_data"])
-                    reporting_data[request_id].update(review_result["updated_data"])
+                # Update stored data in Firestore
+                db.update_reimbursement_request(request_id, review_result["updated_data"])
 
                 # Delegate notification to notification agent
                 notification_agent.transfer({
@@ -111,8 +132,7 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
             # Delegate reporting to reporting agent
             return reporting_agent.transfer({
                 "action": "generate_report",
-                "data": data,
-                "reporting_data": reporting_data
+                "data": data
             })
 
         else:
@@ -123,12 +143,18 @@ def process_reimbursement(request: Dict[str, Any]) -> Dict[str, Any]:
 
 def get_pending_approvals(approver_id: str) -> Dict[str, Any]:
     """Get all pending approvals for an approver."""
-    # Delegate to review agent
-    return review_agent.transfer({
-        "action": "get_pending",
-        "approver_id": approver_id,
-        "pending_approvals": pending_approvals
-    })
+    try:
+        # Get pending approvals from Firestore
+        pending_approvals = db.get_pending_approvals(approver_id)
+        
+        # Delegate to review agent for additional processing if needed
+        return review_agent.transfer({
+            "action": "get_pending",
+            "approver_id": approver_id,
+            "pending_approvals": pending_approvals
+        })
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # Define the root agent
 root_agent = Agent(

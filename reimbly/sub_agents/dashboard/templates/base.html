@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reimbly Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --background: #ffffff;
+            --text: #333333;
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border-radius: 8px;
+            --spacing: 20px;
+            --font-family: Arial, sans-serif;
+            --transition: 0.3s ease;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing);
+            padding: var(--spacing);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--background);
+            border-radius: var(--border-radius);
+            padding: var(--spacing);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid var(--secondary);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: var(--spacing);
+            background: var(--secondary)20;
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+
+        .request-item {
+            padding: var(--spacing);
+            margin: 10px 0;
+            border-left: 4px solid var(--primary);
+            background: var(--secondary)10;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-pending .status-badge { background: var(--warning)20; color: var(--warning); }
+        .status-approved .status-badge { background: var(--success)20; color: var(--success); }
+        .status-rejected .status-badge { background: var(--danger)20; color: var(--danger); }
+
+        .request-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .action-btn.view { background: var(--secondary)20; color: var(--secondary); }
+        .action-btn.approve { background: var(--success)20; color: var(--success); }
+        .action-btn.reject { background: var(--danger)20; color: var(--danger); }
+
+        .chart-card {
+            position: relative;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary);
+            transition: var(--transition);
+        }
+
+        .control-btn:hover { color: var(--primary); }
+
+        .activity-feed {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            background: var(--background);
+            padding: 10px 0;
+            z-index: 1;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--secondary)20;
+        }
+
+        .activity-avatar img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-time {
+            color: var(--secondary);
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script>
+        // Apply theme colors dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            const root = document.documentElement;
+            root.style.setProperty('--background', '{{ colors.background }}');
+            root.style.setProperty('--text', '{{ colors.text }}');
+            root.style.setProperty('--primary', '{{ colors.primary }}');
+            root.style.setProperty('--secondary', '{{ colors.secondary }}');
+            root.style.setProperty('--success', '{{ colors.success }}');
+            root.style.setProperty('--warning', '{{ colors.warning }}');
+            root.style.setProperty('--danger', '{{ colors.danger }}');
+            root.style.setProperty('--border-radius', '{{ border_radius }}');
+            root.style.setProperty('--spacing', '{{ spacing }}');
+            root.style.setProperty('--font-family', '{{ font_family }}');
+            root.style.setProperty('--transition', '{{ transition }}');
+            
+            const container = document.querySelector('.dashboard-container');
+            container.style.gridTemplateColumns = '{{ layout }}';
+            container.style.maxWidth = '{{ max_width }}';
+        });
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        {% block scripts %}{% endblock %}
+    </script>
+</body>
+</html> 

@@ -1,0 +1,28 @@
+{% macro request_card(request, show_details=False) %}
+<div class="request-item status-{{ request.status }}" data-request-id="{{ request.request_id }}">
+    <div class="request-header">
+        <div class="request-title">
+            <h4>{{ request.request_id }}</h4>
+            <span class="status-badge">{{ request.status }}</span>
+        </div>
+        <div class="request-amount">${{ request.amount }}</div>
+    </div>
+    
+    <div class="request-content">
+        <p class="category">{{ request.category }}</p>
+        <p class="description">{{ request.description }}</p>
+        <div class="request-details">
+            <p class="date">Created: {{ request.created_at }}</p>
+            <p class="date">Updated: {{ request.updated_at }}</p>
+        </div>
+    </div>
+    
+    <div class="request-actions">
+        <button class="action-btn view" data-action="view">View Details</button>
+        {% if request.status == 'pending' %}
+            <button class="action-btn approve" data-action="approve">Approve</button>
+            <button class="action-btn reject" data-action="reject">Reject</button>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %} 
