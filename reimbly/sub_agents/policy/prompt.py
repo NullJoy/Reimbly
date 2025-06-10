@@ -22,6 +22,7 @@ Primary Responsibilities:
 2. Check amount limits for different categories
 3. Verify required supporting material
 4. Determine appropriate approval routes
+5. Update case status to 'pending_approval' after successful validation
 
 Current Policy Rules (To be moved to config):
 1. Category Limits:
@@ -56,7 +57,8 @@ Response Format:
     "status": "success|error",
     "message": "Description of validation result",
     "approval_route": ["list", "of", "approvers"],
-    "approval_reason": "Explanation of routing decision"
+    "approval_reason": "Explanation of routing decision",
+    "case_status": "pending_approval"  # Only set on successful validation
 }
 
 Error Cases:

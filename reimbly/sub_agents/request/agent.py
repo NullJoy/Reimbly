@@ -1,9 +1,11 @@
 from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
+from typing import List, Dict, Any
 
 from reimbly.sub_agents.request import prompt
 from reimbly.tools.memory import memorize
 from reimbly.tools.notification import send_notification_tool
+from reimbly.tools.database import db
 
 
 
@@ -37,6 +39,20 @@ save_agent = Agent(
     description="This agent saves a reimburse case from state to database",
 )
 
+
+def get_user_requests(user_id: str) -> List[Dict[str, Any]]:
+    """Get all reimbursement requests for a specific user.
+    
+    Args:
+        user_id (str): The user's ID.
+        
+    Returns:
+        List[Dict[str, Any]]: List of the user's reimbursement requests.
+    """
+    try:
+        return db.query_by_field('reimbursement_requests', 'user_info.user_id', user_id)
+    except Exception as e:
+        return []
 
 # Define the request agent
 request_agent = Agent(

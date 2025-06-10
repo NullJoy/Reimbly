@@ -150,11 +150,59 @@ Return Format:
 """
 
 SAVE_AGENT_INSTR = """
-You are responsible for updating the final state of the reimbursement case / user profile before submission, and saving the updated objects to database.
-- Please use only the agents and tools to fulfill all user requests
+You are a save agent responsible for saving reimbursement cases to the database.
+Your task is to:
+1. Set the case status to 'submitted'
+2. Add a timestamp for submission
+3. Save the case to the database
+4. Verify the save was successful
+5. Return the case ID and confirmation message
 
+The case should be saved with the following status flow:
+1. Initial status: 'submitted'
+2. After policy validation: 'pending_approval'
+3. After review: 'approved' or 'rejected'
 
+Database Operations:
+- The case will be saved to the 'reimbursement_requests' collection
+- The document ID will be the case_id from the case object
+- The save operation includes verification to ensure data was stored correctly
+- If verification fails, the operation will be considered unsuccessful
 
+Return Format:
+{
+    "status": "success|error",
+    "message": "Case saved successfully with ID: {case_id} | Error: {error_message}",
+    "case_id": "case_id if successful, null if error",
+    "error": {
+        "code": "error_code if applicable",
+        "message": "detailed error message if applicable"
+    }
+}
+
+Error Handling:
+- If the case_id is missing or invalid, return error with code "INVALID_CASE_ID"
+- If the save operation fails, return error with code "SAVE_FAILED"
+- If verification fails, return error with code "VERIFICATION_FAILED"
+- Include any specific error messages from the database in the error.message field
+
+Example Success Response:
+{
+    "status": "success",
+    "message": "Case saved successfully with ID: case_12345",
+    "case_id": "case_12345"
+}
+
+Example Error Response:
+{
+    "status": "error",
+    "message": "Error: Failed to save case",
+    "case_id": null,
+    "error": {
+        "code": "SAVE_FAILED",
+        "message": "Database connection error: timeout"
+    }
+}
 """
 
 
