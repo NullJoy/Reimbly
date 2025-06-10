@@ -2,6 +2,7 @@ from google.adk.agents import Agent
 from typing import Dict, Any, List
 import uuid
 from datetime import datetime
+from ...tools.validation import validate_approval_data
 
 # In-memory storage for pending approvals
 pending_approvals: Dict[str, Dict[str, Any]] = {}
@@ -173,30 +174,24 @@ def review_request(review_data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: The result of the review action.
     """
-    request_id = review_data.get("request_id")
-    action = review_data.get("action")
-    approver_id = review_data.get("approver_id")
-    comment = review_data.get("comment", "")
-    
-    # Validate required fields
-    if not all([request_id, action, approver_id]):
+    # Use the validation tool to check approval data structure
+    is_valid, error_message = validate_approval_data(review_data)
+    if not is_valid:
         return {
             "status": "error",
-            "error_message": "Missing required fields: request_id, action, and approver_id are required"
+            "message": error_message
         }
     
-    # Validate action
-    if action not in ["approve", "reject"]:
-        return {
-            "status": "error",
-            "error_message": "Invalid action. Must be 'approve' or 'reject'"
-        }
+    request_id = review_data["request_id"]
+    action = review_data["action"]
+    approver_id = review_data["approver_id"]
+    comment = review_data["comment"]
     
     # Check if request exists
     if request_id not in pending_approvals:
         return {
             "status": "error",
-            "error_message": f"Request {request_id} not found"
+            "message": f"Request {request_id} not found"
         }
     
     request = pending_approvals[request_id]
@@ -205,7 +200,7 @@ def review_request(review_data: Dict[str, Any]) -> Dict[str, Any]:
     if approver_id not in request["approval_route"]:
         return {
             "status": "error",
-            "error_message": f"Approver {approver_id} is not authorized for this request"
+            "message": f"Approver {approver_id} is not authorized for this request"
         }
     
     # Record the review action

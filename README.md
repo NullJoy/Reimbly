@@ -8,7 +8,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # in the .venv virtual environment
-pip install google-adk
+pip install -r requirements.txt
 # verify adk version
 pip show google-adk
 
