@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reimbly Admin Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        h1, h2 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #fff; margin: 5px 0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .button { display: inline-block; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }
+        .button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Reimbly Admin Dashboard</h1>
+    <h2>Summary Statistics</h2>
+    <ul>
+        <li>Total Requests: {{ data.summary_stats.total_requests }}</li>
+        <li>Total Amount: {{ data.summary_stats.total_amount | currency }}</li>
+        <li>Approval Rate: {{ data.summary_stats.approval_rate or 0 }}%</li>
+    </ul>
+    <h2>Pending Requests</h2>
+    <ul>
+    {% for req in data.pending_requests %}
+        <li>{{ req.request_id }} - {{ req.category }} - {{ req.amount | currency }} - {{ req.user_info.user_id if req.user_info else '' }}</li>
+    {% endfor %}
+    </ul>
+    <h2>Approved Requests</h2>
+    <ul>
+    {% for req in data.approved_requests %}
+        <li>{{ req.request_id }} - {{ req.category }} - {{ req.amount | currency }} - {{ req.user_info.user_id if req.user_info else '' }}</li>
+    {% endfor %}
+    </ul>
+    <h2>Rejected Requests</h2>
+    <ul>
+    {% for req in data.rejected_requests %}
+        <li>{{ req.request_id }} - {{ req.category }} - {{ req.amount | currency }} - {{ req.user_info.user_id if req.user_info else '' }}</li>
+    {% endfor %}
+    </ul>
+    <a href="#" class="button">Filter Requests</a>
+    <a href="#" class="button">View Detailed Report</a>
+</body>
+</html> 
