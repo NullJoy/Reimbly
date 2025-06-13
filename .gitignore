@@ -19,3 +19,9 @@ venv/
 # Local development settings
 .env
 .env.local
+
+# Ignore config directory
+config/
+
+# Ignore adk_env virtual environment
+adk_env/
