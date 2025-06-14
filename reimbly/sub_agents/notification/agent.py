@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 import os
 
 notification_agent = Agent(
-    name="notification_sender",
+    name="notification_agent",
     description="Agent for sending email notifications",
     model="gemini-2.0-flash",
     instruction=(

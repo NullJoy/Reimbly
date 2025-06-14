@@ -61,7 +61,7 @@ class DashboardAgent(Agent):
     
     def __init__(self, **data):
         super().__init__(
-            name="dashboard_generator",
+            name="dashboard_agent",
             description="Agent for generating admin dashboards and analytics",
             model="gemini-2.0-flash",
             instruction=(

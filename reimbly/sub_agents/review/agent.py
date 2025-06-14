@@ -261,7 +261,7 @@ def get_pending_approvals(approver_id: str) -> Dict[str, Any]:
 
 # Define the review agent
 review_agent = Agent(
-    name="review_processor",
+    name="review_agent",
     description="Agent for processing reimbursement request reviews and approvals",
     model="gemini-2.0-flash",
     instruction=(
