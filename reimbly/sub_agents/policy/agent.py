@@ -132,7 +132,7 @@ def validate_policy(request_data: Dict[str, Any]) -> Dict[str, Any]:
 
 # Define the policy agent
 policy_agent = Agent(
-    name="policy_validator",
+    name="policy_agent",
     description="Agent for validating reimbursement requests against company policies",
     model="gemini-2.0-flash",
     instruction=(

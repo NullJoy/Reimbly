@@ -98,7 +98,7 @@ def get_request_template() -> Dict[str, Any]:
 
 # Define the request agent
 request_agent = Agent(
-    name="request_collector",
+    name="request_agent",
     description="Agent for collecting and validating reimbursement requests",
     model="gemini-2.0-flash",
     instruction=(

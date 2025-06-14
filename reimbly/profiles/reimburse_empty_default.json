@@ -1,0 +1,18 @@
+{
+    "state": {
+      "user_profile" : {
+        "_id": "423875",
+        "name": "Alex Kim",
+        "email": "alex@example.com",
+          "direct_manager_id": "420017",
+        "cases": [
+          {"_id": "case1234", "timestamp": "2025-06-04T10:32:00Z", "status": "pending_approval"},
+          {"_id": "case1235", "timestamp": "2023-12-19T12:30:01Z", "status": "approved"}
+        ],
+        "department": "engineering",
+        "location": "Seattle, WA",
+        "default_card_number": "1278236982709765"
+      },
+      "case": {}
+    }
+  }
