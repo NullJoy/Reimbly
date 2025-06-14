@@ -184,7 +184,7 @@ def generate_report(report_params: Dict[str, Any]) -> Dict[str, Any]:
 
 # Define the reporting agent
 reporting_agent = Agent(
-    name="report_generator",
+    name="reporting_agent",
     description="Agent for generating reimbursement reports and analytics",
     model="gemini-2.0-flash",
     instruction=(
