@@ -1,18 +1,55 @@
 {
     "state": {
       "user_profile" : {
-        "_id": "423875",
+        "user_id": "423875",
         "name": "Alex Kim",
         "email": "alex@example.com",
           "direct_manager_id": "420017",
-        "cases": [
-          {"_id": "case1234", "timestamp": "2025-06-04T10:32:00Z", "status": "pending_approval"},
-          {"_id": "case1235", "timestamp": "2023-12-19T12:30:01Z", "status": "approved"}
-        ],
+        "cases": [],
         "department": "engineering",
         "location": "Seattle, WA",
         "default_card_number": "1278236982709765"
       },
-      "case": {}
+      "case": {
+        "case_id": "case_893124",
+        "user_id": "423875",
+        "submitted_at": "2025-06-04T10:32:00Z",
+        "status": "pending_review",
+        "amount": 268.50,
+        "currency": "USD",
+        "category": "travel",
+        "justification": "Conference trip to Chicago",
+        "reimburse_card_number": "1278236982709765",
+        "reviewer_route": [
+            "420017", "420123", "400135"
+        ],
+        "decision_log": [
+          {
+            "actor_id": "policy_agent",
+            "action": "policy_compliance_validated",
+            "timestamp": "2025-06-04T10:33:01Z",
+            "comments": "Exceed policy limit, requires extra approvals."
+          },
+          {
+            "actor_id": "420017",
+            "action": "approve",
+            "timestamp": "2025-06-05T11:20:00Z",
+            "comments": "Please include hotel invoice."
+          }
+        ],
+        "attachments": [
+          {
+            "type": "pdf",
+            "name": "hotel_invoice.pdf",
+            "url": "https://files.company.com/reimb/case_893124/hotel_invoice.pdf"
+          },
+          {
+            "type": "image",
+            "name": "boarding_pass.jpg",
+            "url": "https://files.company.com/reimb/case_893124/boarding_pass.jpg"
+          }
+        ],
+        "last_updated": "2025-06-05T11:20:00Z"    
+      }
     }
   }
