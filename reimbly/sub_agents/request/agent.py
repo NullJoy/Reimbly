@@ -11,22 +11,7 @@ init_case_agent = Agent(
     name="init_case_agent",
     instruction=prompt.INIT_CASE_AGENT_INSTR,
     description="This agent initiate a new reimburse case",
-    disallow_transfer_to_parent=True,
-    # disallow_transfer_to_peers=True,
-    output_schema=ReimburseCase,
-    # output_key="reimburse_case",
-    # tools=[memorize]
-)
-
-info_collect_agent = Agent(
-    model="gemini-2.0-flash",
-    name="info_collect_agent",
-    instruction=prompt.INFO_COLLECT_AGENT_INSTR,
-    description="This agent collects information for a reimburse case from user",
-    disallow_transfer_to_parent=True,
-    # disallow_transfer_to_peers=True,
-    output_schema=ReimburseCase,
-    # tools=[memorize]
+    tools=[memorize]
 )
 
 validate_agent = Agent(
@@ -34,8 +19,14 @@ validate_agent = Agent(
     name="validate_agent",
     instruction=prompt.VALIDATE_AGENT_INSTR,
     description="This agent validates the information in a reimburse case is complete and valid",
-    disallow_transfer_to_parent=True,
-    disallow_transfer_to_peers=True,
+)
+
+info_collect_agent = Agent(
+    model="gemini-2.0-flash",
+    name="info_collect_agent",
+    instruction=prompt.INFO_COLLECT_AGENT_INSTR,
+    description="This agent collects information for a reimburse case from user",
+    tools=[memorize]
 )
 
 save_agent = Agent(
@@ -43,9 +34,6 @@ save_agent = Agent(
     name="save_agent",
     instruction=prompt.SAVE_AGENT_INSTR,
     description="This agent saves a reimburse case from state to database",
-    disallow_transfer_to_parent=True,
-    disallow_transfer_to_peers=True,
-    
 )
 
 
@@ -55,5 +43,10 @@ request_agent = Agent(
     description="Agent for collecting info reimbursement requests",
     model="gemini-2.0-flash",
     instruction=prompt.REQUEST_AGENT_INSTR,
-    tools=[AgentTool(agent=init_case_agent), AgentTool(agent=info_collect_agent)]
+    tools=[
+        AgentTool(agent=init_case_agent), 
+        AgentTool(agent=info_collect_agent),
+        AgentTool(agent=validate_agent),
+        AgentTool(agent=save_agent)
+    ]
 ) 
