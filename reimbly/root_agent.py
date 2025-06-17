@@ -9,17 +9,12 @@ High-Level Overview:
   - Review Agent: Handles multi-step approval workflows and role-based access.
   - Reporting Agent: Aggregates data for analytics and reporting.
   - Dashboard Agent: Generates HTML dashboards for admins.
-  - Notification Agent: Handles all notification logic.
 - Tools:
   - Notification Tools: Email formatting and sending utilities.
   - Progress Tools: Status tracking and progress bar generation.
   - Validation Tools: Common validation utilities.
 """
 from google.adk.agents import Agent
-from typing import Dict, Any
-import uuid
-from datetime import datetime
-import time
 
 from reimbly import prompt
 from reimbly.tools.memory import _load_prestored_user_profile
@@ -30,15 +25,10 @@ from .sub_agents.policy.agent import policy_agent
 from .sub_agents.review.agent import review_agent
 from .sub_agents.reporting.agent import reporting_agent
 from .sub_agents.dashboard.agent import dashboard_agent
-from .sub_agents.notification.agent import notification_agent
 
 # Import tools
-from .tools.notification import send_notification
-from .tools.progress import format_progress_bar
-
-# Global in-memory storage for pending approvals and reporting data
-pending_approvals: Dict[str, Dict[str, Any]] = {}
-reporting_data: Dict[str, Dict[str, Any]] = {}
+from .tools.notification import resend_case_update_email_tool
+from .tools.notification import send_notification_tool
 
 
 # Define the root agent
@@ -49,11 +39,11 @@ root_agent = Agent(
     sub_agents=[
         request_agent,
         policy_agent,
-        notification_agent,
         review_agent,
         reporting_agent,
         dashboard_agent
     ],
+    tools=[resend_case_update_email_tool,send_notification_tool],
     instruction=prompt.ROOT_AGENT_INSTR,
     before_agent_callback=_load_prestored_user_profile,
 ) 

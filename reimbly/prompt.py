@@ -1,4 +1,3 @@
-
 """Defines the prompts in the reimbursement ai agent."""
 
 ROOT_AGENT_INSTR = """
@@ -13,6 +12,7 @@ ROOT_AGENT_INSTR = """
 - If user asks about reviewing a specific reimbursement request, transfer to the agent `review_agent`
 - If user asks about list views of their submitted requests, requests pending their reviews, or reports and analytics, transfer to the agent `reporting_agent`
 - If user asks about an admin dashboard or data visualization, transfer to `dashboard_agent`
+- If a user explicitly asks to resend an update for a specific case (identified by a `case_id`), immediately call the `notification_tool_agent`'s `resend_case_update_email` tool with the extracted `case_id`. Do not attempt to diagnose or solve prior notification issues; simply execute the tool call and report the result of the tool.
 - Please use the context info below for any user preferences
 
 Current user:

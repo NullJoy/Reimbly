@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from reimbly.sub_agents.review import prompt
 from google.adk.tools.agent_tool import AgentTool
+from reimbly.tools.notification import send_notification_tool
 
 # Define sub-step agents for the review agent
 user_permission_validator_agent = Agent(
@@ -27,15 +28,16 @@ pending_approvals_retriever_agent = Agent(
     instruction=prompt.GET_PENDING_APPROVALS_INSTR
 )
 
-# Define the review agent
+# Create the review agent
 review_agent = Agent(
     name="review_agent",
-    description="Agent for processing reimbursement request reviews and approvals",
+    description="Agent for handling reimbursement reviews",
     model="gemini-2.0-flash",
     instruction=prompt.REVIEW_AGENT_INSTR,
     tools=[
         AgentTool(agent=user_permission_validator_agent),
         AgentTool(agent=review_action_processor_agent),
         AgentTool(agent=pending_approvals_retriever_agent),
+        send_notification_tool
     ],
 )

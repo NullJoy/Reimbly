@@ -27,24 +27,29 @@ def memorize(key: str, value: str, tool_context: ToolContext):
         A status message.
     """
     print(f"\n[DEBUG] Memorize called with key: {key}, value: {value}")
-    print(f"[DEBUG] Current state before update: {tool_context.state}")
+    print(f"[DEBUG] Current state before update: {tool_context.state._value}")
     
     # Parse the key to handle nested state updates
     key_parts = key.split('.')
     current = tool_context.state
     
     # Navigate to the nested location
-    for part in key_parts[:-1]:
+    for part in key_parts[1:-1]:
+        print(f"[DEBUG] Current part: {part}")
+        print(f"[DEBUG] Current part in current: {part in current}")
         if part not in current:
             current[part] = {}
         current = current[part]
-    
-    # Update the value at the final location
-    current[key_parts[-1]] = value
-    
-    print(f"[DEBUG] State after update: {tool_context.state}")
-    return {"status": f'Stored "{key}": "{value}"'}
+    #     print(f"[DEBUG] Current key value in loop: {current._value}")
+    # print(f"[DEBUG] Current key value before update: {current._value}")
 
+    # Update the value at the final location
+    print(f"[DEBUG] Current key_parts[-1]: {key_parts[-1]}")
+    current[key_parts[-1]] = value
+
+    
+    print(f"[DEBUG] State after update: {tool_context.state._value}")
+    return {"status": f'Stored "{key}": "{value}"'}
 
 def _set_initial_states(source: Dict[str, Any], target: State | dict[str, Any]):
     """
