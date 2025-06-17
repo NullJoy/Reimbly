@@ -22,6 +22,8 @@ PYTHONPATH=. python -m unittest tests/test_agents.py
 deactivate
 ```
 
+## TESTS - Need to remove
+- To test with the notificatino, will need to switch user email to the targetted email address.
 
 
 ## TODOs

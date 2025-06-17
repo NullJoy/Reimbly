@@ -11,9 +11,26 @@ from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel, Field
 from google.adk.agents import Agent
 import logging
+from reimbly.sub_agents.dashboard import prompt
+from google.adk.tools.agent_tool import AgentTool
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+# Define sub-step agents for the dashboard agent
+html_dashboard_generator_agent = Agent(
+    name="html_dashboard_generator_agent",
+    description="Generates the HTML content for the reimbursement dashboard.",
+    model="gemini-2.0-flash",
+    instruction=prompt.GENERATE_DASHBOARD_HTML_INSTR
+)
+
+dashboard_saver_agent = Agent(
+    name="dashboard_saver_agent",
+    description="Saves the generated HTML dashboard to a specified file path.",
+    model="gemini-2.0-flash",
+    instruction=prompt.SAVE_DASHBOARD_INSTR
+)
 
 class DashboardConfig(BaseModel):
     """Configuration for the dashboard agent."""
@@ -53,6 +70,7 @@ class DashboardConfig(BaseModel):
         "compact": "repeat(3, 1fr)"
     })
 
+# Define the dashboard agent
 class DashboardAgent(Agent):
     """Agent for generating admin dashboards and analytics."""
     
@@ -64,14 +82,11 @@ class DashboardAgent(Agent):
             name="dashboard_agent",
             description="Agent for generating admin dashboards and analytics",
             model="gemini-2.0-flash",
-            instruction=(
-                "You are a dashboard agent. Your responsibilities include:\n"
-                "1. Generating HTML dashboards for admins\n"
-                "2. Providing summary statistics and analytics\n"
-                "3. Supporting real-time updates and customization options\n"
-                "4. Rendering charts and activity feeds\n"
-                "You do not process approvals or notifications.\n"
-            ),
+            instruction=prompt.DASHBOARD_AGENT_INSTR,
+            tools=[
+                AgentTool(agent=html_dashboard_generator_agent),
+                AgentTool(agent=dashboard_saver_agent),
+            ],
             **data
         )
         self.env = Environment(loader=FileSystemLoader(str(self.config.template_dir)))
@@ -184,6 +199,7 @@ class DashboardAgent(Agent):
 
     def generate_dashboard_html(
         self,
+        output_path: Optional[str] = None,
         theme: str = "light",
         layout: str = "grid",
         show_pending: bool = True,
@@ -197,47 +213,10 @@ class DashboardAgent(Agent):
         spacing: str = "20px",
         font_family: str = "Arial, sans-serif",
         transition: str = "0.3s ease",
-        max_width: str = "1400px",
-        data: Optional[Dict[str, Any]] = None
-    ) -> dict:
-        """Generate dashboard HTML with specified options. Returns dict with status and html."""
-        logging.info("generate_dashboard_html called")
-        try:
-            logging.info("Generating dashboard HTML...")
-            template = self.env.get_template('dashboard.html')
-            # Prepare data
-            if data is None:
-                data = self._prepare_dashboard_data(
-                    show_pending=show_pending,
-                    show_approved=show_approved,
-                    show_rejected=show_rejected,
-                    max_requests=max_requests,
-                    date_range=date_range
-                )
-            # Get recent activity
-            recent_activity = self._get_all_requests()[:10] if show_activity else []
-            # Render template
-            html = template.render(
-                data=data,
-                recent_activity=recent_activity,
-                colors=self._get_theme_colors(theme),
-                layout=self._get_layout(layout),
-                show_pending=show_pending,
-                show_approved=show_approved,
-                show_rejected=show_rejected,
-                show_charts=show_charts,
-                show_activity=show_activity,
-                border_radius=border_radius,
-                spacing=spacing,
-                font_family=font_family,
-                transition=transition,
-                max_width=max_width
-            )
-            logging.info("Dashboard HTML generated successfully.")
-            return {"status": "success", "html": html}
-        except Exception as e:
-            logging.error(f"Error generating dashboard HTML: {str(e)}")
-            return {"status": "error", "message": str(e)}
+        max_width: str = "1400px"
+    ) -> str:
+        # This logic would be moved to html_dashboard_generator_agent's internal execution
+        pass
 
     def save_dashboard(
         self,
@@ -257,41 +236,12 @@ class DashboardAgent(Agent):
         transition: str = "0.3s ease",
         max_width: str = "1400px"
     ) -> str:
-        """Save dashboard HTML to file."""
-        if output_path:
-            output_file = Path(output_path)
-        else:
-            output_file = Path("output/dashboard.html")
-            
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        html_content = self.generate_dashboard_html(
-            theme=theme,
-            layout=layout,
-            show_pending=show_pending,
-            show_approved=show_approved,
-            show_rejected=show_rejected,
-            show_charts=show_charts,
-            show_activity=show_activity,
-            max_requests=max_requests,
-            date_range=date_range,
-            border_radius=border_radius,
-            spacing=spacing,
-            font_family=font_family,
-            transition=transition,
-            max_width=max_width
-        )
-        
-        output_file.write_text(html_content)
-        return str(output_file)
+        # This logic would be moved to dashboard_saver_agent's internal execution
+        pass
 
     def trigger_html_generation(self, command: str) -> dict:
-        """Trigger HTML generation based on a command or keyword."""
-        logging.info("trigger_html_generation called with command: %s", command)
-        if command.lower() == 'generate dashboard':
-            return self.generate_dashboard_html()
-        else:
-            return {"status": "error", "message": "Invalid command. Use 'generate dashboard' to create the dashboard."}
+        # This logic would be handled by the main dashboard_agent's prompt and tool calls
+        pass
 
 # Create a singleton instance
 dashboard_agent = DashboardAgent() 

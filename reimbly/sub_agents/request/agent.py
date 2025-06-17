@@ -1,9 +1,10 @@
 from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 
-from reimbly.shared_libraries.types import ReimburseCase
 from reimbly.sub_agents.request import prompt
 from reimbly.tools.memory import memorize
+from reimbly.tools.notification import send_notification_tool
+
 
 
 init_case_agent = Agent(
@@ -47,6 +48,7 @@ request_agent = Agent(
         AgentTool(agent=init_case_agent), 
         AgentTool(agent=info_collect_agent),
         AgentTool(agent=validate_agent),
-        AgentTool(agent=save_agent)
+        AgentTool(agent=save_agent),
+        send_notification_tool,
     ]
 ) 

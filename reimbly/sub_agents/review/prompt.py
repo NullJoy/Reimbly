@@ -18,7 +18,7 @@ To manage the review workflow, I interact with the following specialized sub-age
 
 Agent Transfer Rules:
 -   If a user's action requires permission validation, I will use the `User Permission Validator Agent`.
--   If an approval or rejection action is performed, I will use the `Review Processor Agent`.
+-   If an approval or rejection action is performed, I will use the `Review Processor Agent` and send an 'update' or 'complete' notification to the user depending on the status of the request.
 -   If a user requests to view pending approvals, I will use the `Pending Approvals Retriever Agent`.
 -   If a request requires an exception review (e.g., policy violation), I will guide the user through the exception process and may internally manage the state, potentially involving transfer back to the user for more information or a different top-level agent for further processing (e.g., `reimbursement_root` for re-routing).
 
