@@ -186,7 +186,7 @@ Database Operations:
 Return Format:
 {
     "status": "success|error",
-    "message": "Case saved successfully with ID: {case_id} | Error: {error_message}",
+    "message": "Case saved successfully with ID: {case.case_id} | Error: [error_message]",
     "case_id": "case_id if successful, null if error",
     "error": {
         "code": "error_code if applicable",
@@ -217,6 +217,18 @@ Example Error Response:
         "message": "Database connection error: timeout"
     }
 }
+
+- Please use the context info below for case information:
+Current user:
+  <user_profile>
+  {user_profile}
+  </user_profile>
+
+Current case:
+  <case>
+  {case}
+  </case>
+
 """
 
 
