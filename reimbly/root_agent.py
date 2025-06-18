@@ -13,6 +13,7 @@ High-Level Overview:
   - Notification Tools: Email formatting and sending utilities.
   - Progress Tools: Status tracking and progress bar generation.
   - Validation Tools: Common validation utilities.
+  - Database Tools: Firestore operations for persistent storage.
 """
 from google.adk.agents import Agent
 
@@ -29,7 +30,6 @@ from .sub_agents.dashboard.agent import dashboard_agent
 # Import tools
 from .tools.notification import resend_case_update_email_tool
 from .tools.notification import send_notification_tool
-
 
 # Define the root agent
 root_agent = Agent(
