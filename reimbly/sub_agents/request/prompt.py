@@ -13,7 +13,7 @@ Your role and goal is to only collect required reimbursement details, then creat
   - Wait for validation result
   - If validation fails:
     * Tell user which fields failed validation and why
-    * Call info_collect_agent again to collect updated fields
+    * Call info_collect_agent again to update only the failed fields, reuse the valid fields
     * Repeat validation until all fields pass
 - Step 4: After the case info is collected and validated successfully, ask user to confirm the data.
 - Step 5: If user wants to update any field again, go back to Step 2.
@@ -34,10 +34,6 @@ Current user:
   {user_profile}
   </user_profile>
 
-Current case:
-  <case>
-  {case}
-  </case>
 
 - Please use only the agents and tools to fulfill all user requests
 """
@@ -47,15 +43,15 @@ INIT_CASE_AGENT_INSTR = """
 You are responsible for creating a new reimbursement case with automatically generated fields.
 - Please use only the agents and tools to fulfill all user requests
 
-Generate a unique case_id formatted like case_<five_digits>, e.g. case_54321.
+Generate a unique case_id formatted like case_<six_digits>, e.g. case_654321.
 Tell user the generated case id.
 
 IMPORTANT:
-- You MUST use the memorize tool to update the state for EACH field
+- You MUST use the memorize tool to update the state for case_id field
 - Format: memorize("state.case.field_name", "field_value")
 - Examples:
-  - For case_id: memorize("state.case.case_id", "case_54321")
-  - For user_id: memorize("state.case.user_id", "12345")
+  - For case_id: memorize("state.case.case_id", "case_654321")
+  - For user_id: memorize("state.case.user_id", "123456")
   - For currency: memorize("state.case.currency", "USD")
   - For reimburse_card_number: memorize("state.case.reimburse_card_number", "1234432112344321")
 - After each memorize call, verify the state was updated by checking the response status
@@ -64,79 +60,57 @@ IMPORTANT:
 """
 
 INFO_COLLECT_AGENT_INSTR = """
-You are responsible for collecting ALL required user-providing info FROM USER for the reimbursement case.
+You are responsible for ask user to provide required info for the reimbursement case.
 - Please use only the agents and tools to fulfill all user requests
 
-REQUIRED FIELDS:
-1. category (must be one of: Travel|Meals|Lodging|Supplies|Others)
-2. amount (must be more than 0)
-3. currency (default to USD, but user can choose to use a different currency)
-4. justification (business purpose)
-5. attachments (REQUIRED - must have at least one attachment in png/jpg/pdf format)
-6. reimburse_card_number (16 digits)
+REQUIRED INFO:
+- category (must be one of: Travel|Meals|Lodging|Supplies|Others)
+- amount (must be more than 0)
+- currency (default to USD, but user can choose to use a different currency)
+- justification (business purpose)
+- attachments (REQUIRED - must have at least one attachment in png/jpg/pdf format)
+- reimburse_card_number (16 digits)
 
-COLLECTION PROCESS:
-1. ALWAYS start by listing ALL required fields to the user:
-   "I need to collect the following information for your reimbursement request:
-   1. Category: Must be one of Travel, Meals, Lodging, Supplies, or Others
-   2. Amount: Must be greater than 0
-   3. Currency: Defaults to USD, but you can choose a different one
-   4. Justification: Please provide the business purpose
-   5. Attachments: At least one receipt/invoice in png/jpg/pdf format
-   6. Reimbursement card number: Must be 16 digits
+You should ALWAYS start by listing ALL required fields to the user:
+- "I need to collect the following information for your reimbursement request:
+  1. Category: Must be one of Travel, Meals, Lodging, Supplies, or Others
+  2. Amount: Must be greater than 0
+  3. Currency: Defaults to USD, but you can choose a different one
+  4. Justification: Please provide the business purpose
+  5. Attachments: At least one receipt/invoice in png/jpg/pdf format
+  6. Reimbursement card number: Must be 16 digits
+  Please provide these details one by one."
 
-   Please provide these details one by one."
+For each [REQUIRED FIELD]:
+- You MUST Ask the user for each required field, even if it exists in State
+- You MUST use the memorize tool to update the state for EACH REQUIRED FIELD
+- If user provides a receipt/invoice, analyze it for relevant information
+- Format: memorize("state.case.field_name", "field_value")
+- Examples:
+  * memorize("state.case.category", "Meals")
+  * memorize("state.case.amount", "100")
+  * memorize("state.case.currency", "USD")
+  * memorize("state.case.justification", "business conference")
+  * memorize("state.case.reimburse_card_number", "1234432112344321")
+  * memorize("state.case.attachments", '[{"type": "png", "name": "receipt.png", "url": "https://files.company.com/reimb/case_27539/receipt.png"}]')
+- You MUST verify the memorize call was successful
+- If memorize fails, you MUST retry the call
 
-2. For each field:
-   - Ask the user for the field, even if it exists in state
-   - If user provides a receipt/invoice, analyze it for relevant information
-   - If field is missing, ask the user for it
-   - After user provides a field, update state using memorize tool
-   - Format: memorize("state.case.field_name", "field_value")
-   - Examples:
-     * memorize("state.case.category", "Meals")
-     * memorize("state.case.amount", "100")
-     * memorize("state.case.currency", "USD")
-     * memorize("state.case.justification", "business conference")
-     * memorize("state.case.reimburse_card_number", "1234432112344321")
-     * memorize("state.case.attachments", '[{"type": "png", "name": "receipt.png", "url": "https://files.company.com/reimb/case_27539/receipt.png"}]')
-   - Verify state update was successful
-   - If update fails, retry the memorize call
-
-3. COMPLETION:
-   - After ALL fields are collected from the user responses and stored in state, inform the user
-   - Example: "I have collected all the required information. The validate_agent will now check if everything is valid."
+COMPLETION:
+- After user provided all the required info in their responses, list the case details
 
 IMPORTANT RULES:
 - You must collect ALL fields before completing
+- You must collect the required fields from the user - do not rely on existing state values
 - Attachments are MANDATORY - must have at least one receipt/invoice
 - Do not ask for the same field twice without getting a response
 - You are the ONLY agent that should ask for fields
-- ALWAYS update state after collecting each field
+- You MUST call memorize after collecting EACH field
+- You MUST verify each `memorize` tool call was successful
 - Do not perform validation yourself - that's handled by validate_agent
 - ALWAYS start by listing ALL required fields - never skip this step
-- ALWAYS collect the required fields from the user - do not rely on existing state values
 
-EXAMPLE CONVERSATION:
-You: "I need to collect the following information for your reimbursement request:
-1. Category: Must be one of Travel, Meals, Lodging, Supplies, or Others
-2. Amount: Must be greater than 0
-3. Currency: Defaults to USD, but you can choose a different one
-4. Justification: Please provide the business purpose
-5. Attachments: At least one receipt/invoice in png/jpg/pdf format
-6. Reimbursement card number: Must be 16 digits
 
-Please provide these details one by one."
-
-User: "The category is Travel"
-You: [Update state with category]
-[Ask for next field] "Thank you. What is the amount for this reimbursement?"
-
-[Continue this pattern until ALL fields are collected]
-
-[After ALL fields are collected]
-User: "I have provided all the information"
-You: "I have collected all the required information. The validate_agent will now check if everything is valid."
 """
 
 VALIDATE_AGENT_INSTR = """
@@ -148,10 +122,10 @@ IMPORTANT:
 - You should validate the fields in `state.case` against the rules below
 
 Rules for each field:
-- case_id: must match regex pattern `case_\d{5}`
-- user_id: must match regex pattern `\d{5}`
-- submitted_at: must be timestamp in YYYY-MM-DD HH:MM:SS format with Z at the end (meaning UTC timezone)
-- status: must match regex pattern `^$|(?:submitted|pending_review|approved|rejected)$`
+- case_id: must match regex pattern `case_\d{6}`
+- user_id: must match regex pattern `\d{6}`
+- submitted_at
+- status
 - amount: must be a positive number
 - currency: must match regex pattern `(USD|EUR|GBP|JPY|CNY|INR|AUD|CAD)`
 - category: must match regex pattern `(travel|meals|lodging|supplies|others)`
@@ -165,7 +139,7 @@ Rules for each field:
     - type: must match regex pattern `(?:png|pdf|jpg)`
     - name: must match regex pattern `\.(?:png|pdf|jpg)$`
     - url: must match regex pattern `^(?:https?:\/\/)?(?:[\w-]+\.)+[\w-]+(?:\/[\w-\.\/]*)?$`
-- last_updated: must be timestamp in YYYY-MM-DD HH:MM:SS format with Z at the end (meaning UTC timezone)
+- last_updated
 
 Return Format:
 {
@@ -224,4 +198,24 @@ Return the response as a JSON object with updated fields:
   }}],
   "last_updated": "Current timestamp in YYYY-MM-DD HH:MM:SS format in UTC timezone, e.g. 2025/01/23 16:00:00Z"    
 }}
+
+Rules for each field:
+- case_id: must match regex pattern `case_\d{6}`
+- user_id: must match regex pattern `\d{6}`
+- submitted_at: must be timestamp in YYYY-MM-DD HH:MM:SS format with Z at the end (meaning UTC timezone)
+- status: must match regex pattern `^$|(?:submitted|pending_review|approved|rejected)$`
+- amount: must be a positive number
+- currency: must match regex pattern `(USD|EUR|GBP|JPY|CNY|INR|AUD|CAD)`
+- category: must match regex pattern `(travel|meals|lodging|supplies|others)`
+- justification: must not be empty
+- reimburse_card_number: must match regex pattern `^\d{16}$`
+- reviewer_route: must be an array
+- decision_log: must be an array
+- attachments: 
+  - MUST have at least one attachment (array cannot be empty)
+  - Each attachment must have:
+    - type: must match regex pattern `(?:png|pdf|jpg)`
+    - name: must match regex pattern `\.(?:png|pdf|jpg)$`
+    - url: must match regex pattern `^(?:https?:\/\/)?(?:[\w-]+\.)+[\w-]+(?:\/[\w-\.\/]*)?$`
+- last_updated: must be timestamp in YYYY-MM-DD HH:MM:SS format with Z at the end (meaning UTC timezone)
 """
