@@ -13,8 +13,7 @@ init_case_agent = Agent(
     model="gemini-2.0-flash",
     name="init_case_agent",
     instruction=prompt.INIT_CASE_AGENT_INSTR,
-    description="This agent initiate a new reimburse case",
-    tools=[memorize]
+    description="This agent initiate a new reimburse case"
 )
 
 validate_agent = Agent(
@@ -28,8 +27,7 @@ info_collect_agent = Agent(
     model="gemini-2.0-flash",
     name="info_collect_agent",
     instruction=prompt.INFO_COLLECT_AGENT_INSTR,
-    description="This agent collects information for a reimburse case from user",
-    tools=[memorize]
+    description="This agent collects information for a reimburse case from user"
 )
 
 save_agent = Agent(
@@ -40,20 +38,6 @@ save_agent = Agent(
 )
 
 
-def get_user_requests(user_id: str) -> List[Dict[str, Any]]:
-    """Get all reimbursement requests for a specific user.
-    
-    Args:
-        user_id (str): The user's ID.
-        
-    Returns:
-        List[Dict[str, Any]]: List of the user's reimbursement requests.
-    """
-    try:
-        return db.query_by_field('reimbursement_requests', 'user_info.user_id', user_id)
-    except Exception as e:
-        return []
-
 # Define the request agent
 request_agent = Agent(
     name="request_agent",
@@ -61,6 +45,7 @@ request_agent = Agent(
     model="gemini-2.0-flash",
     instruction=prompt.REQUEST_AGENT_INSTR,
     tools=[
+        memorize,
         AgentTool(agent=init_case_agent), 
         AgentTool(agent=info_collect_agent),
         AgentTool(agent=validate_agent),
