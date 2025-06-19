@@ -33,3 +33,9 @@ Currently, the data is stored in memory. In a real system, we need to:
 - Implement real-time data updates
 - Add more sophisticated visualization options
 - Include export capabilities (CSV, PDF, etc.)
+
+## Deploy to Cloud Run
+```
+   gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/reimbly
+   gcloud run deploy reimbly --image gcr.io/YOUR_PROJECT_ID/reimbly --platform managed --region us-central1 --allow-unauthenticated
+```
